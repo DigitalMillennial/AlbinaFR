@@ -67,11 +67,10 @@
           <div class="admin-name">Albina</div>
           <div class="admin-role">Administrateur</div>
         </div>
-      </div>
-      <a href="index.html" class="btn-logout">
-        <i class="fas fa-sign-out-alt"></i>
-        <span>Déconnexion</span>
+        <a href="index.html" class="btn-logout">
+        <i class="fas fa-sign-out-alt"></i>        
       </a>
+      </div>      
     </div>
   </aside>
 
