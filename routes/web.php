@@ -16,6 +16,8 @@ use App\Http\Controllers\Admin\MaterialController;
 use App\Http\Controllers\Admin\ContentController;
 use App\Http\Controllers\Admin\QuestionController;
 use App\Http\Controllers\Admin\AnswerController;
+use App\Http\Controllers\Admin\RessourceController;
+use App\Http\Controllers\Admin\ResultatTestController;
 
 Route::get('/', function () {
     return view('site.index');
@@ -40,10 +42,10 @@ Route::middleware('auth:admin')->prefix('admin')->name('admin.')->group(function
    Route::resource('students', StudentController::class);
     Route::resource('clients', ClientController::class);
     Route::resource('groups', GroupController::class);
-    Route::resource('reviews', ReviewController::class);
-    Route::resource('materials', MaterialController::class);
     Route::resource('courses', CourseController::class); 
     Route::resource('questions', QuestionController::class);
+   
+    Route::resource('resultats_test', ResultatTestController::class);
     Route::resource('answers', AnswerController::class);
     Route::get('/content', [ContentController::class, 'index'])->name('content.index');
    Route::get('/content/main', function () {
@@ -51,7 +53,17 @@ Route::middleware('auth:admin')->prefix('admin')->name('admin.')->group(function
     })->name('content.main'); 
     Route::get('/content/get/{key}', [ContentController::class, 'get'])->name('content.get');
     Route::post('/content', [ContentController::class, 'update'])->name('content.update');
-   
+    
+ Route::resource('test', TestController::class);
+Route::resource('levels', ResultatTestController::class);
+
+    Route::resource('ressources', RessourceController::class);
+    Route::get('ressources/search', [RessourceController::class, 'search'])->name('ressources.search');
+ Route::get('ressources/create', [RessourceController::class, 'create'])->name('ressources.create');
+ Route::post('ressources', [RessourceController::class, 'store'])->name('ressources.store');
+ Route::get('ressources/{id}/download', [RessourceController::class, 'download'])
+     ->name('ressources.download');
+
 });
 
 
@@ -69,10 +81,16 @@ Route::post('/admin/login', [AdminLoginController::class, 'login'])->name('admin
 
 
 Route::post('/create-payment-intent', [PaymentController::class, 'createPaymentIntent']);
+
 Route::post('/checkout', [CheckoutController::class, 'create']);
-Route::get('/checkout/success', [CheckoutController::class, 'success'])->name('checkout.success');
-Route::get('/checkout/cancel', [CheckoutController::class, 'cancel'])->name('checkout.cancel');
-Route::post('/checkout/webhook', [CheckoutController::class, 'webhook'])
+
+Route::get('/checkout/success', [CheckoutController::class, 'success'])
+    ->name('checkout.success');
+
+Route::get('/checkout/cancel', [CheckoutController::class, 'cancel'])
+    ->name('checkout.cancel');
+
+Route::post('/stripe/webhook', [CheckoutController::class, 'webhook'])
     ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
     ->name('checkout.webhook');
 

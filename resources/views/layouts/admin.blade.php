@@ -54,6 +54,10 @@
         <i class="fas fa-file-alt"></i>
         <span>Content</span>
       </a>
+      <a href="{{ route('admin.test.index') }}" class="nav-item">
+        <i class="fas fa-file-alt"></i>
+        <span>Test</span>
+      </a>
       <a href="#" class="nav-item">
         <i class="fas fa-cog"></i>
         <span>Paramètres</span>

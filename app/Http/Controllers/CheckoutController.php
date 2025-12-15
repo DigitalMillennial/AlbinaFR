@@ -94,64 +94,74 @@ class CheckoutController extends Controller
     }
 
     public function webhook(Request $request)
-    {
-        Log::info('Webhook вызван');
+{
+    Log::info('Webhook вызван');
 
-        $payload = $request->getContent();
-        $sigHeader = $request->header('Stripe-Signature');
-        $secret = env('STRIPE_WEBHOOK_SECRET');
+    $payload = $request->getContent();
+    $sigHeader = $request->header('Stripe-Signature');
+    $secret = env('STRIPE_WEBHOOK_SECRET');
 
-        try {
-            $event = \Stripe\Webhook::constructEvent($payload, $sigHeader, $secret);
-            Log::info('Stripe Webhook Event: ' . $event->type . ', ID: ' . $event->id);
-        } catch (\Exception $e) {
-            Log::error('Ошибка Stripe Webhook: ' . $e->getMessage());
-            return response()->json(['error' => 'Invalid payload'], 400);
-        }
+    try {
+        $event = \Stripe\Webhook::constructEvent($payload, $sigHeader, $secret);
+        Log::info('Stripe Webhook Event: ' . $event->type . ', ID: ' . $event->id);
+    } catch (\Exception $e) {
+        Log::error('Ошибка Stripe Webhook: ' . $e->getMessage());
+        return response()->json(['error' => 'Invalid payload'], 400);
+    }
 
-        if ($event->type === 'checkout.session.completed') {
-            $session = $event->data->object;
+    if ($event->type === 'checkout.session.completed') {
+        $session = $event->data->object;
 
-            $studentId = $session->metadata->student_id ?? null;
-            $courseId  = $session->metadata->course_id ?? null;
-            $groupId   = $session->metadata->group_id ?? null; // ✅ читаем group_id
-            $amount    = $session->amount_total ?? null;
-            $stripeId  = $session->id;
+        // Логируем весь объект для проверки
+        Log::info('Session object dump', (array)$session);
 
-            Log::info('Metadata получена', [
-                'student_id' => $studentId,
-                'course_id'  => $courseId,
-                'group_id'   => $groupId,
-                'amount'     => $amount,
-            ]);
+        $studentId = $session->metadata->student_id ?? null;
+        $courseId  = $session->metadata->course_id ?? null;
+        $groupId   = $session->metadata->group_id ?? null;
+        $amount    = $session->amount_total ?? $session->amount_subtotal ?? 0;
+        $stripeId  = $session->id;
 
-            if ($studentId && $courseId && $amount) {
-                Payment::create([
+        Log::info('Metadata получена', [
+            'student_id' => $studentId,
+            'course_id'  => $courseId,
+            'group_id'   => $groupId,
+            'amount'     => $amount,
+        ]);
+
+        if ($studentId && $courseId) {
+            try {
+                $payment = Payment::create([
                     'student_id' => $studentId,
                     'course_id'  => $courseId,
-                    'amount'     => $amount / 100,
+                    'amount'     => $amount > 0 ? $amount / 100 : 0,
                     'stripe_id'  => $stripeId,
-                    'status'     => 'paid',
+                    'status'     => $session->payment_status ?? 'paid',
                     'paid_at'    => now(),
                 ]);
+
+                Log::info("Payment создан", ['id' => $payment->id]);
 
                 $student = Student::find($studentId);
                 if ($student) {
                     $student->courses()->syncWithoutDetaching([$courseId]);
 
                     if ($groupId) {
-                        $student->groups()->syncWithoutDetaching([$groupId]); // ✅ привязка к группе
+                        $student->groups()->syncWithoutDetaching([$groupId]);
                     }
                 }
 
                 Log::info("Оплата записана и студент привязан к курсу и группе: student_id={$studentId}, course_id={$courseId}, group_id={$groupId}, amount={$amount}");
-            } else {
-                Log::warning("checkout.session.completed пришёл без student_id или course_id", (array)$session);
+            } catch (\Throwable $e) {
+                Log::error('Ошибка при создании Payment: ' . $e->getMessage());
             }
         } else {
-            Log::info("Событие {$event->type} проигнорировано");
+            Log::warning("checkout.session.completed пришёл без student_id или course_id", (array)$session);
         }
-
-        return response()->json(['status' => 'success']);
+    } else {
+        Log::info("Событие {$event->type} проигнорировано");
     }
+
+    return response()->json(['status' => 'success']);
+}
+
 }

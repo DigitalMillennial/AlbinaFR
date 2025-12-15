@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Controller; 
 use App\Models\Answer;
 use App\Models\Question;
 use Illuminate\Http\Request;

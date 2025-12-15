@@ -5,14 +5,18 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Question;
 use Illuminate\Http\Request;
+use App\Models\Answer;
 
 class QuestionController extends Controller
 {
-    public function index()
-    {
-        $questions = Question::with('answers')->get();
-        return view('admin.test.index', compact('questions'));
-    }
+  public function index()
+{
+    $questions = Question::with(['answers', 'activeAnswer'])->get();
+    $answers   = Answer::with('question')->get(); // добавляем все ответы
+
+    return view('admin.test.index', compact('questions', 'answers'));
+}
+
 
     public function create()
     {
@@ -49,7 +53,7 @@ class QuestionController extends Controller
             ]);
         }
 
-        return redirect()->route('admin.questions.index')->with('success', 'Вопрос и ответы сохранены');
+        return redirect()->route('admin.test.index')->with('success', 'Вопрос и ответы сохранены');
     }
 
     public function edit(Question $question)
@@ -72,8 +76,10 @@ class QuestionController extends Controller
     }
 
     public function destroy(Question $question)
-    {
-        $question->delete();
-        return redirect()->route('admin.questions.index')->with('success', 'Вопрос удалён');
-    }
+{
+    $question->delete();
+
+    return redirect()->route('admin.test.index') // <-- оставляем на странице теста
+                     ->with('success', 'Вопрос удалён');
+}
 }
